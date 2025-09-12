@@ -25,8 +25,21 @@ SECRET_KEY = "django-insecure-!x&--61tn4q3u0w&^sw(0e^n4#t#3r_(@&g+o(66o4@76b5bl%
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = [
+    "127.0.0.1",
+    "localhost",
+    "http://127.0.0.1:5500/",
+    "127.0.0.1:5500"
+    "127.0.0.1:8000"
 
+]
+
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:8085",  # Ваш фронтенд
+    "http://localhost:5173",  # Ваш фронтенд
+    "http://localhost:5500",
+    "http://127.0.0.1:5500",
+]
 
 # Application definition
 
@@ -41,11 +54,13 @@ INSTALLED_APPS = [
     "rest_framework",
     'rest_framework.authtoken',
     'djoser',
+    "corsheaders",
 ]
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
+    "corsheaders.middleware.CorsMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
@@ -128,6 +143,15 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework.authentication.TokenAuthentication',
-        'rest_framework.authentication.SessionAuthentication',
+        # 'rest_framework.authentication.SessionAuthentication',
     ),
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.IsAuthenticated',  # Важно!
+    ],
 }
+
+# SIMPLE_JWT = {
+#     'AUTH_HEADER_TYPES': ('Bearer',),
+#     'USER_ID_FIELD': 'id',
+#     'USER_ID_CLAIM': 'user_id',
+# }

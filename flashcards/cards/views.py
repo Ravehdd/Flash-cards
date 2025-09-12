@@ -10,8 +10,14 @@ from django.contrib.auth import get_user_model
 User = get_user_model()
 
 
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def test(request):
+    return Response({"ok": "ok"})
+
+
 @api_view(['POST'])
-# @permission_classes([IsAuthenticated])
+@permission_classes([IsAuthenticated])
 def create_flashcard_set(request):
     """
     Создание нового набора карточек
@@ -33,7 +39,7 @@ def create_flashcard_set(request):
             category_name = data['category']
             category, created = Category.objects.get_or_create(name=category_name)
 
-        user = User.objects.get(id=request.data["user"])
+        print(request.user.id)
 
         # Создаем набор карточек
         flashcard_set = FlashcardSet.objects.create(
@@ -42,7 +48,7 @@ def create_flashcard_set(request):
             category=category,
             difficulty=data.get('difficulty', 'beginner'),
             is_public=data.get('is_public', False),
-            user=user  # Текущий пользователь
+            user=request.user  # Текущий пользователь
         )
 
         # Сериализуем и возвращаем ответ
