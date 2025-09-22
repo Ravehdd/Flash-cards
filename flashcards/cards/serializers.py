@@ -142,5 +142,65 @@ class FlashcardSerializer(serializers.ModelSerializer):
 
 class WordSerializer(serializers.Serializer):
     word = serializers.CharField(max_length=255)
+    translation = serializers.CharField(max_length=255, allow_null=True)
     hsk_level = serializers.IntegerField(min_value=1, max_value=7)
-    example = serializers.CharField(max_length=255, allow_blank=True, allow_null=True)
+    example_sentence = serializers.CharField(max_length=255, allow_null=True)
+    definition = serializers.CharField(max_length=255, allow_null=True)
+    dl = serializers.CharField(max_length=5)
+
+    flashcard_set_id = serializers.PrimaryKeyRelatedField(
+        queryset=FlashcardSet.objects.all(),
+        write_only=True,
+        source='flashcard_set'
+    )
+
+    def get_flashcard_set_info(self, obj):
+        if hasattr(obj, 'flashcard_set'):
+            return {
+                'id': obj.flashcard_set.id,
+                'name': obj.flashcard_set.name
+            }
+        return None
+
+    # flashcard_set_name = serializers.CharField(source='flashcard_set.name', read_only=True)
+    #
+    # # Для создания/обновления (только для записи)
+    # flashcard_set_id = serializers.PrimaryKeyRelatedField(
+    #     queryset=FlashcardSet.objects.all(),
+    #     write_only=True,
+    #     source='flashcard_set'
+    # )
+
+    # class Meta:
+    #     model = Flashcard
+    #     fields = [
+    #         'id',
+    #         'word',
+    #         'translation',
+    #         'pinyin',
+    #         'definition',
+    #         'example_sentence',
+    #         'audio_pronunciation',
+    #         'hsk_level',
+    #         'flashcard_set',  # для чтения (объект)
+    #         # 'flashcard_set_id',  # для записи (ID)
+    #         # 'flashcard_set_name',  # для чтения (название набора)
+    #         'mastered',
+    #         'created_date',
+    #         'last_modified',
+    #         "dl"
+    #     ]
+    #     read_only_fields = ['id', 'created_date', 'last_modified']
+
+
+class UserFlashcardSetSerializer(serializers.ModelSerializer):
+    # Форматированная дата создания
+    creation_date = serializers.SerializerMethodField()
+
+    class Meta:
+        model = FlashcardSet
+        fields = ['id', 'name', 'creation_date', 'total_cards']
+
+    def get_creation_date(self, obj):
+        """Форматируем дату в формат ДД-ММ-ГГ"""
+        return obj.creation_date.strftime('%d-%m-%y')

@@ -66,7 +66,7 @@ def create_flashcard_set(request):
 
 
 class CreateFlashcardAPIView(APIView):
-    def get_translation(self, word):
+    def get_translation(self, word, destination_language_code):
         url = f'https://ftapi.pythonanywhere.com/translate'
 
         # Минимальные необходимые headers
@@ -84,7 +84,7 @@ class CreateFlashcardAPIView(APIView):
 
         params = {
             'sl': "zh-cn",
-            'dl': "en",
+            'dl': destination_language_code,
             'text': word
         }
 
@@ -105,22 +105,50 @@ class CreateFlashcardAPIView(APIView):
     def post(self, request):
         serializer = WordSerializer(data=request.data)
         if serializer.is_valid():
-            from pypinyin import pinyin, Style
-            data = serializer.data
-            # pinyin_list = pinyin(data["word"], style=Style.TONE)
-            # pin_yin = ' '.join([item[0] for item in pinyin_list])
-            translation_data = self.get_translation(data["word"])
-            print(translation_data)
-            return Response({"word": data, "pinyin": translation_data["pronunciation"]["source-text-phonetic"], "translation": translation_data["destination-text"]})
+            validated_data = serializer.validated_data
 
-        return Response({"error": "not ok"})
+            print("Validated data:", validated_data)
+            print("Flashcard set object:", validated_data.get("flashcard_set"))
+            print("Flashcard set ID:",
+                  validated_data.get("flashcard_set").id if validated_data.get("flashcard_set") else None)
 
+            translation_data = self.get_translation(validated_data["word"], validated_data["dl"])
 
+            translation = validated_data["translation"] or translation_data["translations"]["possible-translations"]
+            pinyin = translation_data["pronunciation"]["source-text-phonetic"]
 
+            card = Flashcard.objects.create(
+                word=validated_data["word"],
+                translation=translation,
+                pinyin=pinyin,
+                definition=validated_data["definition"],
+                example_sentence=validated_data["example_sentence"],
+                hsk_level=validated_data["hsk_level"],
+                flashcard_set=validated_data["flashcard_set"]  # Используем объект из validated_data
+            )
 
-@api_view(["POST"])
-def get_flashcard_set(request):
-    pass
+            return Response({
+                "id": card.id,
+                "word": card.word,
+                "pinyin": card.pinyin,
+                "translation": card.translation,
+                "definition": card.definition,
+                "example_sentence": card.example_sentence,
+                "flashcard_set_id": card.flashcard_set.id
+            })
+
+        print("Serializer errors:", serializer.errors)
+        return Response({"error": serializer.errors})
+
+class UserFlashcardSetsView(generics.ListAPIView):
+    serializer_class = UserFlashcardSetSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        # Простая версия без аннотации
+        return FlashcardSet.objects.filter(
+            user=self.request.user
+        ).order_by('-creation_date')
 
 
 class FlashcardCreateView(generics.CreateAPIView):
